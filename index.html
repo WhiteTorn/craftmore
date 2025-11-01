@@ -110,7 +110,19 @@
       margin: 2.5rem 0 0;
       display: grid;
       gap: 1.1rem;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    @media (max-width: 760px) {
+      ul {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 520px) {
+      ul {
+        grid-template-columns: 1fr;
+      }
     }
 
     li {
@@ -181,27 +193,27 @@
 <body>
   <main>
     <h1>CraftMore Georgian Names</h1>
-  <p>Tap the glowing button and watch nine Georgian names bloom from the generator. Each set is curated just for this visit.</p>
-  <button id="showNames">Generate My Names</button>
+    <p>Tap the glowing button and watch nine Georgian names bloom from the generator. Each set is curated just for this visit.</p>
+    <button id="showNames">Generate My Names</button>
     <div id="status" class="status" aria-live="polite"></div>
     <ul id="nameList" aria-label="Randomly selected Georgian names"></ul>
   </main>
 
   <script>
-  const namesSource = 'CraftGeo/generated_names.txt';
+    const namesSource = 'CraftGeo/generated_names.txt';
     const button = document.getElementById('showNames');
     const list = document.getElementById('nameList');
     const status = document.getElementById('status');
 
     let allNames = [];
-  const gridSize = 9;
+    const gridSize = 9;
 
     async function loadNames() {
       if (allNames.length) {
         return;
       }
 
-      status.textContent = 'Loading Georgian names…';
+      status.textContent = 'Loading Georgian names...';
 
       try {
         const response = await fetch(namesSource);
@@ -235,7 +247,7 @@
     button.addEventListener('click', async () => {
       button.disabled = true;
       button.setAttribute('aria-busy', 'true');
-      status.textContent = '🧡 Crafting a cozy batch just for you…';
+      status.textContent = 'Crafting a cozy batch just for you...';
 
       await loadNames();
       if (!allNames.length) {
@@ -256,7 +268,7 @@
         }, 220);
       });
 
-      status.textContent = names.length ? 'Here they are – your new Georgian inspirations!' : 'Not enough names available.';
+      status.textContent = names.length ? 'Here they are - your new Georgian inspirations!' : 'Not enough names available.';
       button.disabled = false;
       button.removeAttribute('aria-busy');
     });
@@ -267,7 +279,7 @@
       <path fill="#fff" d="m9.6 11.2 6-3.2-6-3.2v6.4Z"/>
     </svg>
     <span>
-      Georgian fork inspired by <a href="https://youtube.com/watch?v=PaCmpygFfXo&list=PLAqhIrjkxbuWI23v9cThsA9GvCAUhRvKZ&index=1" target="_blank" rel="noopener noreferrer">Andrej Karpathy’s Makemore series</a>.
+      Georgian fork inspired by <a href="https://youtube.com/watch?v=PaCmpygFfXo&list=PLAqhIrjkxbuWI23v9cThsA9GvCAUhRvKZ&index=1" target="_blank" rel="noopener noreferrer">Andrej Karpathy's Makemore series</a>.
     </span>
   </div>
 </body>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CraftMore Georgian Names</title>
+  <style>
+    :root {
+      --orange: #ff7a00;
+      --white: #ffffff;
+      --shadow: rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--white);
+      color: #1a1a1a;
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+    }
+
+    main {
+      width: min(640px, 92vw);
+      padding: 3rem 2.5rem;
+      border-radius: 18px;
+      background: linear-gradient(135deg, var(--white) 0%, #fff3e6 100%);
+      box-shadow: 0 18px 36px var(--shadow);
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 2.35rem;
+      color: var(--orange);
+    }
+
+    p {
+      font-size: 1.05rem;
+      line-height: 1.5;
+      margin: 0 0 2rem;
+    }
+
+    button {
+      background: var(--orange);
+      color: var(--white);
+      border: none;
+      border-radius: 999px;
+      padding: 0.85rem 2.75rem;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 150ms ease, box-shadow 150ms ease;
+      box-shadow: 0 10px 20px rgba(255, 122, 0, 0.3);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(255, 122, 0, 0.35);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 8px 16px rgba(255, 122, 0, 0.25);
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 2rem 0 0;
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    li {
+      background: var(--white);
+      border-radius: 12px;
+      padding: 0.9rem 1.2rem;
+      font-size: 1.05rem;
+      box-shadow: 0 4px 14px var(--shadow);
+    }
+
+    .status {
+      margin-top: 1.5rem;
+      color: #555555;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>CraftMore Georgian Names</h1>
+    <p>This quick demo highlights the Georgian name generation showcased in the project README. Tap the button to surface ten random names from the dataset.</p>
+    <button id="showNames">Show 10 Names</button>
+    <div id="status" class="status" aria-live="polite"></div>
+    <ul id="nameList" aria-label="Randomly selected Georgian names"></ul>
+  </main>
+
+  <script>
+    const namesSource = '../CraftGeo/generated_names.txt';
+    const button = document.getElementById('showNames');
+    const list = document.getElementById('nameList');
+    const status = document.getElementById('status');
+
+    let allNames = [];
+
+    async function loadNames() {
+      if (allNames.length) {
+        return;
+      }
+
+      status.textContent = 'Loading Georgian names…';
+
+      try {
+        const response = await fetch(namesSource);
+        if (!response.ok) {
+          throw new Error('Failed to load names');
+        }
+
+        const text = await response.text();
+        // Split on newlines and filter out empty rows.
+        allNames = text
+          .split(/\r?\n/)
+          .map(name => name.trim())
+          .filter(Boolean);
+
+        status.textContent = '';
+      } catch (error) {
+        status.textContent = 'Could not fetch the names right now. Please try again later.';
+        console.error(error);
+      }
+    }
+
+    function sampleNames(count) {
+      const uniqueNames = new Set();
+      while (uniqueNames.size < count && uniqueNames.size < allNames.length) {
+        const index = Math.floor(Math.random() * allNames.length);
+        uniqueNames.add(allNames[index]);
+      }
+      return Array.from(uniqueNames);
+    }
+
+    button.addEventListener('click', async () => {
+      await loadNames();
+      if (!allNames.length) {
+        return;
+      }
+
+      const names = sampleNames(10);
+      list.innerHTML = '';
+      names.forEach(name => {
+        const item = document.createElement('li');
+        item.textContent = name;
+        list.appendChild(item);
+      });
+
+      status.textContent = names.length ? '' : 'Not enough names available.';
+    });
+  </script>
+</body>
+</html>

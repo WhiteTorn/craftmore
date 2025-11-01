@@ -29,8 +29,8 @@
     }
 
     main {
-      width: min(820px, 96vw);
-      padding: 3.25rem 3rem;
+      width: min(860px, 96vw);
+      padding: 3.5rem 3.2rem;
       border-radius: 28px;
       background: var(--white);
       box-shadow: 0 25px 60px rgba(255, 122, 0, 0.22);
@@ -70,7 +70,7 @@
       font-size: 1.1rem;
       font-weight: bold;
       cursor: pointer;
-      transition: transform 180ms ease, box-shadow 200ms ease;
+      transition: transform 180ms ease, box-shadow 200ms ease, opacity 150ms ease;
       box-shadow: 0 18px 28px rgba(255, 122, 0, 0.28);
       position: relative;
       overflow: hidden;
@@ -101,7 +101,44 @@
 
     button:disabled {
       cursor: wait;
-      opacity: 0.8;
+      opacity: 0.86;
+    }
+
+    button .btn-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    button.is-loading {
+      pointer-events: none;
+    }
+
+    button.is-loading::before {
+      content: "";
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.45);
+      border-top-color: var(--white);
+      left: 1.4rem;
+      top: 50%;
+      transform: translateY(-50%);
+      animation: spin 900ms linear infinite;
+      opacity: 0;
+    }
+
+    button.is-loading::after {
+      opacity: 0.25;
+    }
+
+    button.is-loading .btn-label {
+      padding-left: 1.35rem;
+    }
+
+    button.is-loading::before {
+      opacity: 1;
     }
 
     ul {
@@ -116,16 +153,18 @@
     @media (max-width: 760px) {
       ul {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        row-gap: 1.35rem;
       }
     }
 
     @media (max-width: 520px) {
       ul {
         grid-template-columns: 1fr;
+        row-gap: 1.4rem;
       }
     }
 
-    li {
+    .name-card {
       background: linear-gradient(135deg, rgba(255, 243, 230, 0.8) 0%, #fff 100%);
       border-radius: 18px;
       padding: 1.15rem 1.35rem;
@@ -135,12 +174,14 @@
       align-items: center;
       justify-content: center;
       min-height: 78px;
-      transition: transform 180ms ease, box-shadow 200ms ease;
+      opacity: 0;
+      transform: translateY(12px) scale(0.97);
+      transition: opacity 220ms ease, transform 240ms ease, box-shadow 200ms ease;
     }
 
-    li[data-fresh="true"] {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 30px rgba(255, 122, 0, 0.16);
+    .name-card[data-state="ready"] {
+      opacity: 1;
+      transform: translateY(0) scale(1);
     }
 
     .status {
@@ -150,9 +191,19 @@
       min-height: 1.15rem;
     }
 
+    @media (max-width: 640px) {
+      main {
+        padding: 2.9rem 1.6rem 2.6rem;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+
     .footer-note {
       margin-top: 3rem;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 0.75rem;
@@ -179,13 +230,12 @@
       border-color: var(--orange);
     }
 
-    @media (max-width: 640px) {
-      main {
-        padding: 2.75rem 1.75rem 2.5rem;
+    @keyframes spin {
+      from {
+        transform: translateY(-50%) rotate(0deg);
       }
-
-      button {
-        width: 100%;
+      to {
+        transform: translateY(-50%) rotate(360deg);
       }
     }
   </style>
@@ -194,9 +244,18 @@
   <main>
     <h1>CraftMore Georgian Names</h1>
     <p>Tap the glowing button and watch nine Georgian names bloom from the generator. Each set is curated just for this visit.</p>
-    <button id="showNames">Generate My Names</button>
+    <button id="showNames"><span class="btn-label">Generate My Names</span></button>
     <div id="status" class="status" aria-live="polite"></div>
     <ul id="nameList" aria-label="Randomly selected Georgian names"></ul>
+    <div class="footer-note">
+      <svg viewBox="0 0 24 17" role="img" aria-hidden="true" focusable="false">
+        <path fill="#FF0000" d="M23.5 2.7a3 3 0 0 0-2.1-2.1C19.3 0 12 0 12 0S4.7 0 .6.6A3 3 0 0 0 .6 14.4C4.7 15 12 15 12 15s7.3 0 11.4-.6a3 3 0 0 0 2.1-2.1c.6-2.1.6-6.5.6-6.5s0-4.4-.6-6.5Z"/>
+        <path fill="#fff" d="m9.6 11.2 6-3.2-6-3.2v6.4Z"/>
+      </svg>
+      <span>
+        Georgian fork inspired by <a href="https://youtube.com/watch?v=PaCmpygFfXo&list=PLAqhIrjkxbuWI23v9cThsA9GvCAUhRvKZ&index=1" target="_blank" rel="noopener noreferrer">Andrej Karpathy's Makemore series</a>.
+      </span>
+    </div>
   </main>
 
   <script>
@@ -247,12 +306,14 @@
     button.addEventListener('click', async () => {
       button.disabled = true;
       button.setAttribute('aria-busy', 'true');
+      button.classList.add('is-loading');
       status.textContent = 'Crafting a cozy batch just for you...';
 
       await loadNames();
       if (!allNames.length) {
         button.disabled = false;
         button.removeAttribute('aria-busy');
+        button.classList.remove('is-loading');
         return;
       }
 
@@ -260,27 +321,21 @@
       list.innerHTML = '';
       names.forEach(name => {
         const item = document.createElement('li');
+        item.className = 'name-card';
         item.textContent = name;
-        item.dataset.fresh = 'true';
         list.appendChild(item);
-        setTimeout(() => {
-          item.dataset.fresh = 'false';
-        }, 220);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            item.dataset.state = 'ready';
+          });
+        });
       });
 
       status.textContent = names.length ? 'Here they are - your new Georgian inspirations!' : 'Not enough names available.';
       button.disabled = false;
       button.removeAttribute('aria-busy');
+      button.classList.remove('is-loading');
     });
   </script>
-  <div class="footer-note">
-    <svg viewBox="0 0 24 17" role="img" aria-hidden="true" focusable="false">
-      <path fill="#FF0000" d="M23.5 2.7a3 3 0 0 0-2.1-2.1C19.3 0 12 0 12 0S4.7 0 .6.6A3 3 0 0 0 .6 14.4C4.7 15 12 15 12 15s7.3 0 11.4-.6a3 3 0 0 0 2.1-2.1c.6-2.1.6-6.5.6-6.5s0-4.4-.6-6.5Z"/>
-      <path fill="#fff" d="m9.6 11.2 6-3.2-6-3.2v6.4Z"/>
-    </svg>
-    <span>
-      Georgian fork inspired by <a href="https://youtube.com/watch?v=PaCmpygFfXo&list=PLAqhIrjkxbuWI23v9cThsA9GvCAUhRvKZ&index=1" target="_blank" rel="noopener noreferrer">Andrej Karpathy's Makemore series</a>.
-    </span>
-  </div>
 </body>
 </html>

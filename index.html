@@ -29,8 +29,8 @@
     }
 
     main {
-      width: min(860px, 96vw);
-      padding: 3.5rem 3.2rem;
+      width: min(880px, 96vw);
+      padding: 3.6rem 3.25rem 3rem;
       border-radius: 28px;
       background: var(--white);
       box-shadow: 0 25px 60px rgba(255, 122, 0, 0.22);
@@ -141,47 +141,51 @@
       opacity: 1;
     }
 
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: 2.5rem 0 0;
-      display: grid;
-      gap: 1.1rem;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    @media (max-width: 760px) {
-      ul {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        row-gap: 1.35rem;
-      }
-    }
-
-    @media (max-width: 520px) {
-      ul {
-        grid-template-columns: 1fr;
-        row-gap: 1.4rem;
-      }
-    }
-
-    .name-card {
-      background: linear-gradient(135deg, rgba(255, 243, 230, 0.8) 0%, #fff 100%);
-      border-radius: 18px;
-      padding: 1.15rem 1.35rem;
-      font-size: 1.05rem;
-      box-shadow: 0 10px 26px rgba(26, 26, 26, 0.08);
+    .comparison-column {
+      margin-top: 2.75rem;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 78px;
-      opacity: 0;
-      transform: translateY(12px) scale(0.97);
-      transition: opacity 220ms ease, transform 240ms ease, box-shadow 200ms ease;
+      flex-direction: column;
+      gap: 1.4rem;
+      text-align: left;
     }
 
-    .name-card[data-state="ready"] {
+    .model-card {
+      border-radius: 22px;
+      padding: 1.75rem 2rem;
+      background: linear-gradient(135deg, rgba(255, 243, 230, 0.85) 0%, #fff 100%);
+      box-shadow: 0 25px 45px rgba(26, 26, 26, 0.08);
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 240ms ease, transform 240ms ease;
+    }
+
+    .model-card[data-state="ready"] {
       opacity: 1;
-      transform: translateY(0) scale(1);
+      transform: translateY(0);
+    }
+
+    .model-card h2 {
+      margin: 0 0 1rem;
+      font-size: 1.25rem;
+      color: #d45b00;
+    }
+
+    .name-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .name-pill {
+      padding: 0.9rem 1.1rem;
+      border-radius: 14px;
+      background: #fff7f0;
+      box-shadow: inset 0 0 0 1px rgba(255, 122, 0, 0.15);
+      font-size: 1.05rem;
+      color: #2b2b2b;
     }
 
     .status {
@@ -193,7 +197,7 @@
 
     @media (max-width: 640px) {
       main {
-        padding: 2.9rem 1.6rem 2.6rem;
+        padding: 2.9rem 1.4rem 2.4rem;
       }
 
       button {
@@ -243,10 +247,10 @@
 <body>
   <main>
     <h1>CraftMore Georgian Names</h1>
-    <p>Tap the glowing button and watch nine Georgian names bloom from the generator. Each set is curated just for this visit.</p>
-    <button id="showNames"><span class="btn-label">Generate My Names</span></button>
+    <p>Tap the button to sample every generator. We will surface a cozy batch from each model so you can compare the vibes side by side.</p>
+    <button id="showNames"><span class="btn-label">Compare Generators</span></button>
     <div id="status" class="status" aria-live="polite"></div>
-    <ul id="nameList" aria-label="Randomly selected Georgian names"></ul>
+    <div id="comparisonColumn" class="comparison-column" aria-live="polite"></div>
     <div class="footer-note">
       <svg viewBox="0 0 24 17" role="img" aria-hidden="true" focusable="false">
         <path fill="#FF0000" d="M23.5 2.7a3 3 0 0 0-2.1-2.1C19.3 0 12 0 12 0S4.7 0 .6.6A3 3 0 0 0 .6 14.4C4.7 15 12 15 12 15s7.3 0 11.4-.6a3 3 0 0 0 2.1-2.1c.6-2.1.6-6.5.6-6.5s0-4.4-.6-6.5Z"/>
@@ -259,46 +263,46 @@
   </main>
 
   <script>
-    const namesSource = 'CraftGeo/generated_names.txt';
+    const generators = [
+      { id: 'craftgeo', label: 'CraftGeo (baseline trigram)', path: 'CraftGeo/generated_names.txt' },
+      { id: 'craftgeo2', label: 'CraftGeo 2', path: 'CraftGeo 2/generated_names.txt' },
+      { id: 'craftgeo3', label: 'CraftGeo 3', path: 'CraftGeo 3/generated_names.txt' },
+      { id: 'wavenet', label: 'CraftGeo WaveNet', path: 'craftgeo-wavenet/generated_names.txt' },
+      { id: 'cnn', label: 'CraftGeo CNN', path: 'craftgeo-cnn/generated_names.txt' }
+    ];
     const button = document.getElementById('showNames');
-    const list = document.getElementById('nameList');
+    const comparisonColumn = document.getElementById('comparisonColumn');
     const status = document.getElementById('status');
 
-    let allNames = [];
-    const gridSize = 9;
+    const namesCache = new Map();
+    const namesPerModel = 6;
 
-    async function loadNames() {
-      if (allNames.length) {
-        return;
+    async function loadNamesForGenerator(generator) {
+      if (namesCache.has(generator.id)) {
+        return namesCache.get(generator.id);
       }
 
-      status.textContent = 'Loading Georgian names...';
-
-      try {
-        const response = await fetch(namesSource);
-        if (!response.ok) {
-          throw new Error('Failed to load names');
-        }
-
-        const text = await response.text();
-        // Split on newlines and filter out empty rows.
-        allNames = text
-          .split(/\r?\n/)
-          .map(name => name.trim())
-          .filter(Boolean);
-
-        status.textContent = '';
-      } catch (error) {
-        status.textContent = 'Could not fetch the names right now. Please try again later.';
-        console.error(error);
+      const url = new URL(generator.path, window.location.href).toString();
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to load ${generator.label}`);
       }
+
+      const text = await response.text();
+      const parsed = text
+        .split(/\r?\n/)
+        .map(name => name.trim())
+        .filter(Boolean);
+
+      namesCache.set(generator.id, parsed);
+      return parsed;
     }
 
-    function sampleNames(count) {
+    function pickRandomNames(pool, count) {
       const uniqueNames = new Set();
-      while (uniqueNames.size < count && uniqueNames.size < allNames.length) {
-        const index = Math.floor(Math.random() * allNames.length);
-        uniqueNames.add(allNames[index]);
+      while (uniqueNames.size < Math.min(count, pool.length)) {
+        const index = Math.floor(Math.random() * pool.length);
+        uniqueNames.add(pool[index]);
       }
       return Array.from(uniqueNames);
     }
@@ -307,31 +311,60 @@
       button.disabled = true;
       button.setAttribute('aria-busy', 'true');
       button.classList.add('is-loading');
-      status.textContent = 'Crafting a cozy batch just for you...';
+      status.textContent = 'Gathering samples from every generator...';
 
-      await loadNames();
-      if (!allNames.length) {
+      try {
+        await Promise.all(generators.map(loadNamesForGenerator));
+      } catch (error) {
+        status.textContent = error.message || 'Could not fetch the names right now. Please try again later.';
+        console.error(error);
         button.disabled = false;
         button.removeAttribute('aria-busy');
         button.classList.remove('is-loading');
         return;
       }
 
-      const names = sampleNames(gridSize);
-      list.innerHTML = '';
-      names.forEach(name => {
-        const item = document.createElement('li');
-        item.className = 'name-card';
-        item.textContent = name;
-        list.appendChild(item);
+      comparisonColumn.innerHTML = '';
+
+      generators.forEach(generator => {
+        const pool = namesCache.get(generator.id) || [];
+        const picks = pickRandomNames(pool, namesPerModel);
+
+        const card = document.createElement('article');
+        card.className = 'model-card';
+
+        const title = document.createElement('h2');
+        title.textContent = generator.label;
+        card.appendChild(title);
+
+        const list = document.createElement('ul');
+        list.className = 'name-list';
+        card.appendChild(list);
+
+        if (!picks.length) {
+          const empty = document.createElement('li');
+          empty.className = 'name-pill';
+          empty.textContent = 'No names available.';
+          list.appendChild(empty);
+        } else {
+          picks.forEach(name => {
+            const item = document.createElement('li');
+            item.className = 'name-pill';
+            item.textContent = name;
+            list.appendChild(item);
+          });
+        }
+
+        comparisonColumn.appendChild(card);
+
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            item.dataset.state = 'ready';
+            card.dataset.state = 'ready';
           });
         });
       });
 
-      status.textContent = names.length ? 'Here they are - your new Georgian inspirations!' : 'Not enough names available.';
+      status.textContent = 'Fresh comparisons ready below.';
       button.disabled = false;
       button.removeAttribute('aria-busy');
       button.classList.remove('is-loading');
